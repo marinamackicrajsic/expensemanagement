@@ -75,7 +75,7 @@ public class ExpenseRESTService {
 	private BigDecimal calculateAmount(String amountString) {
 		BigDecimal amount = null;
 
-		if (amountString.matches("[0-9]+\\.[0-9]+[a-zA-Z]{3}")) {
+		if (amountString.matches("[0-9]+(.[0-9]+){0,1}[a-zA-Z]{3}")) {
 			int amountLength = amountString.length();
 			String currencyString = amountString.substring(amountLength - 3).toUpperCase();
 			Currency currency = Currency.getInstance(currencyString);

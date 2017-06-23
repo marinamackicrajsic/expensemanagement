@@ -23,6 +23,7 @@ public class Expense {
 		this.reason = reason;
 		this.date = date;
 		this.amount = amount;
+		this.vat = amount.divide(new BigDecimal(6), 4, RoundingMode.HALF_EVEN);
 	}
 
 	@Override
