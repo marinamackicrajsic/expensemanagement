@@ -57,22 +57,24 @@ public class ExpenseRESTService {
 	public Response createExpense(@FormParam("amount") String amount,
 			@FormParam("date") String date, @FormParam("reason") String reason) {
 
-		BigDecimal calculatedAmount = calculateAmount(amount);
 
 		try {
+			BigDecimal calculatedAmount = calculateAmount(amount);
 			LocalDate lDate = LocalDate.parse(date);
 			Expense expense = new Expense(null, reason, lDate, calculatedAmount);
 			expenseService.createExpense(expense);
-		} catch (DateTimeParseException | IllegalArgumentException | NullPointerException e) {
+		} catch (DateTimeParseException | IllegalArgumentException | NullPointerException|IOException e) {
 			LOG.log(LOG.getLevel(), e.getLocalizedMessage(), e);
 			return Response.status(422).entity("Invalid input data").build();
+		}catch (RuntimeException e) {
+			return Response.status(422).entity("Rates are unavailable").build();
 		}
 
 		return Response.status(201).build();
 
 	}
 
-	private BigDecimal calculateAmount(String amountString) {
+	private BigDecimal calculateAmount(String amountString)throws IOException {
 		BigDecimal amount = null;
 
 		if (amountString.matches("[0-9]+(.[0-9]+){0,1}[a-zA-Z]{3}")) {
@@ -92,29 +94,26 @@ public class ExpenseRESTService {
 
 	}
 
-	private BigDecimal getConversionRate(Currency base, Currency pair) {
+	private BigDecimal getConversionRate(Currency base, Currency pair) throws IOException{
 
 		String url = "http://api.fixer.io/latest?base=" + pair.getCurrencyCode() + "&symbols="
 				+ base.getCurrencyCode();
-
 		ClientResponse response = restClient.getResponse(url);
 		String output = response.getEntity(String.class);
 		return extractRate(output);
 	}
 
-	private BigDecimal extractRate(String output) {
+	private BigDecimal extractRate(String output) throws IOException {
 		BigDecimal rate = null;
 
-		try {
 			JsonNode rootNode = objectMapper.readTree(output);
 			JsonNode idNode = rootNode.path("rates");
 			Iterator<JsonNode> elements = idNode.elements();
 			if (elements.hasNext()) {
 				rate = new BigDecimal(elements.next().asText());
+			} else {
+				throw new RuntimeException("Rates unavailable");
 			}
-		} catch (IOException e) {
-			LOG.log(LOG.getLevel(), e.getLocalizedMessage(), e);
-		}
 		return rate;
 	}
 
